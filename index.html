@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>펀딩멍🐶</title>
+  <style>
+    body {
+      font-family: 'Arial';
+      background: #1e1e2f;
+      color: #fff;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      color: #00ffd5;
+    }
+    label, select, input {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    input, select {
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px;
+      background-color: #00ffd5;
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 18px;
+      width: 100%;
+    }
+    .result, .price-box {
+      background-color: #333;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+  <h1>펀딩멍🐶</h1>
+
+  <div class="price-box" id="priceBox">비트코인 가격: 로딩 중...</div>
+
+  <label>매수 금액 (USDT)</label>
+  <input type="number" id="amount" placeholder="예: 1000" />
+
+  <label>진입 가격</label>
+  <input type="number" id="entryPrice" placeholder="예: 29000" />
+
+  <label>레버리지</label>
+  <input type="number" id="leverage" placeholder="예: 10" />
+
+  <label>포지션</label>
+  <select id="position">
+    <option value="long">롱</option>
+    <option value="short">숏</option>
+  </select>
+
+  <label>펀딩비율 (%)</label>
+  <input type="number" id="fundingRate" placeholder="자동 입력 중..." step="0.0001" />
+
+  <button onclick="calculateFunding()">계산하기</button>
+
+  <div class="result" id="resultBox" style="display:none;">
+    <div id="resultText"></div>
+  </div>
+
+  <script>
+    const proxyBase = "https://proxy.kaesanmung.netlify.app";
+
+    async function fetchMarketData() {
+      try {
+        const res = await fetch(proxyBase + "/btc-price");
+        const data = await res.json();
+        const price = parseFloat(data.price).toLocaleString();
+        document.getElementById("priceBox").innerText = "비트코인 가격: $" + price;
+      } catch (err) {
+        document.getElementById("priceBox").innerText = "비트코인 가격 로딩 실패";
+      }
+    }
+
+    async function fetchFundingRate() {
+      try {
+        const res = await fetch(proxyBase + "/funding-rate");
+        const data = await res.json();
+        const rate = parseFloat(data.rate);
+        document.getElementById("fundingRate").value = rate.toFixed(4);
+      } catch (err) {
+        document.getElementById("fundingRate").placeholder = "펀딩비율 로딩 실패";
+      }
+    }
+
+    function calculateFunding() {
+      const amount = parseFloat(document.getElementById("amount").value);
+      const entryPrice = parseFloat(document.getElementById("entryPrice").value);
+      const leverage = parseFloat(document.getElementById("leverage").value);
+      const fundingRate = parseFloat(document.getElementById("fundingRate").value);
+      const position = document.getElementById("position").value;
+
+      if (!amount || !entryPrice || !leverage || !fundingRate) {
+        alert("모든 값을 입력해주세요.");
+        return;
+      }
+
+      const positionSize = amount * leverage;
+      const rawFee = (positionSize * fundingRate) / 100;
+
+      let fee = 0;
+      if (position === 'long') {
+        fee = -rawFee;
+      } else {
+        fee = rawFee;
+      }
+
+      const sign = fee >= 0 ? "+" : "-";
+      const result = `${sign}${Math.abs(fee).toFixed(4)} USDT`;
+
+      document.getElementById("resultText").innerText = `예상 펀딩비: ${result}`;
+      document.getElementById("resultBox").style.display = "block";
+    }
+
+    fetchMarketData();
+    fetchFundingRate();
+  </script>
+</body>
+</html>
